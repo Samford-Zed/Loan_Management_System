@@ -26,7 +26,7 @@ public class BankAccountService {
         return bankAccountRepository.findById(id);
     }
 
-    public BankAccount createBankAccount(BankAccount bankAccount) {
+    public BankAccount linkBankAccount(BankAccount bankAccount) {
         // Save the bank account first with isVerified = false
         bankAccount.setVerified(false);
         BankAccount savedAccount = bankAccountRepository.save(bankAccount);

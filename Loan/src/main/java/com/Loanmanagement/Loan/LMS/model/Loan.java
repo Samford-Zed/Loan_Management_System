@@ -15,12 +15,30 @@ import java.time.LocalDateTime;
 @Entity
 public class Loan {
 
-    public enum LoanStatus {
-        PENDING,
-        APPROVED,
-        REJECTED,
-        PAID_OFF
-    }
+private String licenseDocumentFilename;
+private String homePhotoFilename;
+private String disbursementFailureReason;
+
+public void setLicenseDocumentFilename(String licenseFilename) {
+    this.licenseDocumentFilename = licenseFilename;
+}
+
+public void setHomePhotoFilename(String homePhotoFilename) {
+    this.homePhotoFilename = homePhotoFilename;
+}
+
+public void setDisbursementFailureReason(String failureReason) {
+    this.disbursementFailureReason = failureReason;
+}
+
+public enum LoanStatus {
+    PENDING,
+    APPROVED,
+    REJECTED,
+    DISBURSED,
+    DISBURSEMENT_FAILED,
+    PAID_OFF;
+}
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -37,6 +55,10 @@ public class Loan {
     private BigDecimal principalAmount;
 
     private int loanTermMonths;
+
+    private String loanPurpose;
+
+    private BigDecimal annualIncome;
 
     @Enumerated(EnumType.STRING)
     private LoanStatus status;
@@ -85,6 +107,22 @@ public class Loan {
 
     public void setLoanTermMonths(int loanTermMonths) {
         this.loanTermMonths = loanTermMonths;
+    }
+
+    public String getLoanPurpose() {
+        return loanPurpose;
+    }
+
+    public void setLoanPurpose(String loanPurpose) {
+        this.loanPurpose = loanPurpose;
+    }
+
+    public BigDecimal getAnnualIncome() {
+        return annualIncome;
+    }
+
+    public void setAnnualIncome(BigDecimal annualIncome) {
+        this.annualIncome = annualIncome;
     }
 
     public LoanStatus getStatus() {

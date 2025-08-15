@@ -23,7 +23,7 @@ public class RepaymentController {
         return repaymentService.getAllRepayments();
     }
 
-    @PostMapping("/pay")
+    @PostMapping(value = "/pay", consumes = "application/json")
     @PreAuthorize("hasRole('USER')")
     public Repayment makePayment(@Valid @RequestBody RepaymentRequest repaymentRequest) {
         return repaymentService.makeRepayment(repaymentRequest);
