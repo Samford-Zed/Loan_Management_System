@@ -1,51 +1,66 @@
 package com.Loanmanagement.Loan.LMS.controller;
 
-import com.Loanmanagement.Loan.LMS.dto.LoanRequest;
-import com.Loanmanagement.Loan.LMS.model.Loan;
+import com.Loanmanagement.Loan.LMS.dto.LoanApplicationDto;
+import com.Loanmanagement.Loan.LMS.dto.LoanDto;
+import com.Loanmanagement.Loan.LMS.dto.PaymentDto;
+import com.Loanmanagement.Loan.LMS.model.Payment;
 import com.Loanmanagement.Loan.LMS.service.LoanService;
-import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/loans")
+@RequestMapping("/api/user/loans")
+@RequiredArgsConstructor
 public class LoanController {
 
-    @Autowired
-    private LoanService loanService;
-
-    @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    public List<Loan> getAllLoans() {
-        return loanService.getAllLoans();
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<Loan> getLoanById(@PathVariable Long id) {
-        return loanService.getLoanById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
+    private final LoanService loanService;
 
     @PostMapping("/apply")
-    @PreAuthorize("hasRole('USER')")
-    public Loan applyForLoan(@Valid @RequestBody LoanRequest loanRequest) {
-        return loanService.applyForLoan(loanRequest);
+    public ResponseEntity<LoanDto> applyForLoan(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody LoanApplicationDto loanApplicationDto
+    ) {
+        return ResponseEntity.ok(loanService.applyForLoan(userDetails.getUsername(), loanApplicationDto));
     }
 
-    @PostMapping("/{id}/approve")
-    @PreAuthorize("hasRole('ADMIN')")
-    public Loan approveLoan(@PathVariable Long id) {
-        return loanService.approveLoan(id);
+    @GetMapping
+    public ResponseEntity<List<LoanDto>> getUserLoans(@AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(loanService.getUserLoans(userDetails.getUsername()));
     }
 
-    @PostMapping("/{id}/reject")
-    @PreAuthorize("hasRole('ADMIN')")
-    public Loan rejectLoan(@PathVariable Long id) {
-        return loanService.rejectLoan(id);
+    @PostMapping("/pay")
+    public ResponseEntity<Payment> makePayment(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody PaymentDto paymentDto
+    ) {
+        return ResponseEntity.ok(loanService.makePayment(userDetails.getUsername(), paymentDto));
+    }
+}
+
+@RestController
+@RequestMapping("/api/admin/loans")
+@RequiredArgsConstructor
+class AdminLoanController {
+
+    private final LoanService loanService;
+
+    @GetMapping("/pending")
+    public ResponseEntity<List<LoanDto>> getPendingLoans() {
+        return ResponseEntity.ok(loanService.getPendingLoans());
+    }
+
+    @PostMapping("/{loanId}/approve")
+    public ResponseEntity<LoanDto> approveLoan(@PathVariable Integer loanId) {
+        return ResponseEntity.ok(loanService.approveLoan(loanId));
+    }
+
+    @PostMapping("/{loanId}/reject")
+    public ResponseEntity<LoanDto> rejectLoan(@PathVariable Integer loanId) {
+        return ResponseEntity.ok(loanService.rejectLoan(loanId));
     }
 }

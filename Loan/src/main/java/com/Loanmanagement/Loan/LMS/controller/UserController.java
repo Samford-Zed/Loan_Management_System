@@ -1,32 +1,24 @@
 package com.Loanmanagement.Loan.LMS.controller;
 
-import com.Loanmanagement.Loan.LMS.model.User;
+import com.Loanmanagement.Loan.LMS.dto.UserDto;
 import com.Loanmanagement.Loan.LMS.service.UserService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api/user")
+@RequiredArgsConstructor
 public class UserController {
 
-    @Autowired
-    private UserService userService;
+    private final UserService userService;
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    public List<User> getAllUsers() {
-        return userService.getAllUsers();
-    }
-
-    @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or @userService.getUserById(#id).get().getEmail() == authentication.name")
-    public ResponseEntity<User> getUserById(@PathVariable Long id) {
-        return userService.getUserById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<UserDto> getUser(@AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(userService.getUser(userDetails.getUsername()));
     }
 }

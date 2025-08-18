@@ -1,93 +1,78 @@
 package com.Loanmanagement.Loan.LMS.model;
 
 import jakarta.persistence.*;
-import java.util.HashSet;
-import java.util.Set;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
+import java.util.Collection;
+import java.util.List;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
-@Table(name = "users")
-public class User {
+@Table(name = "_user")
+public class User implements UserDetails {
+
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // ✅ safer for DB auto-increment
+    private Integer id;
 
-    @Column(nullable = false)
-    private String fullName;
+    private String firstname;
+    private String lastname;
 
-    @Column(nullable = false, unique = true)
+    @Column(unique = true, nullable = false) // ✅ email must be unique
     private String email;
 
-    @Column(nullable = false, unique = true)
-    private String phoneNumber;  // Added phone number field
-
-    @Column(nullable = false)
     private String password;
+    private String phone;
 
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
-    @Column(name = "role")
-    private Set<String> roles = new HashSet<>();
+    private boolean enabled = true; // ✅ default active
 
-    // Constructors
-    public User() {
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false) // ✅ role must always exist
+    private Role role;
+
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
+    private BankAccount bankAccount;
+
+    @OneToMany(mappedBy = "user")
+    private List<Loan> loans;
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        // ✅ FIX: Spring expects "ROLE_" prefix for hasRole()
+        return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
     }
 
-    public User(String email, String password, String fullName, String phoneNumber) {
-        this.email = email;
-        this.password = password;
-        this.fullName = fullName;
-        this.phoneNumber = phoneNumber;
-    }
-    public String getPhoneNumber() {
-        return phoneNumber;
+    @Override
+    public String getUsername() {
+        return email; // ✅ email is used as username
     }
 
-    public void setPhoneNumber(String phoneNumber) {
-        this.phoneNumber = phoneNumber;
+    @Override
+    public boolean isAccountNonExpired() {
+        return true; // ✅ adjust if you want expiration handling
     }
 
-    // Getters and Setters
-    public Long getId() {
-        return id;
+    @Override
+    public boolean isAccountNonLocked() {
+        return true; // ✅ adjust if you want lock handling
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true; // ✅ adjust if you want credential expiration
     }
 
-    public String getFullName() {
-        return fullName;
-    }
-
-    public void setFullName(String fullName) {
-        this.fullName = fullName;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public Set<String> getRoles() {
-        return roles;
-    }
-
-    public void setRoles(Set<String> roles) {
-        this.roles = roles;
-    }
-
-    public void addRole(String role) {
-        this.roles.add(role);
+    @Override
+    public boolean isEnabled() {
+        return enabled; // ✅ respects your enabled flag
     }
 }

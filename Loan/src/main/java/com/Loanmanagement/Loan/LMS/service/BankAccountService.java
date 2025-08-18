@@ -1,40 +1,52 @@
 package com.Loanmanagement.Loan.LMS.service;
 
-import com.Loanmanagement.Loan.LMS.client.BmsClient;
+import com.Loanmanagement.Loan.LMS.dto.BankAccountDto;
+import com.Loanmanagement.Loan.LMS.exception.UserNotFoundException;
+import com.Loanmanagement.Loan.LMS.integration.MockBankService;
 import com.Loanmanagement.Loan.LMS.model.BankAccount;
+import com.Loanmanagement.Loan.LMS.model.User;
 import com.Loanmanagement.Loan.LMS.repository.BankAccountRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.Loanmanagement.Loan.LMS.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Optional;
-
 @Service
+@RequiredArgsConstructor
 public class BankAccountService {
 
-    @Autowired
-    private BankAccountRepository bankAccountRepository;
+    private final BankAccountRepository bankAccountRepository;
+    private final UserRepository userRepository;
+    private final MockBankService mockBankService;
 
-    @Autowired
-    private BmsClient bmsClient; // Inject the client
+    public void linkBankAccount(String userEmail, BankAccountDto dto) {
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-    public List<BankAccount> getAllBankAccounts() {
-        return bankAccountRepository.findAll();
+        // Verify with mock bank system
+        boolean isVerified = mockBankService.verifyBankAccount(
+                dto.getAccountNumber(),
+                dto.getIfscCode(),
+                dto.getAccountHolderName()
+        );
+
+        if (!isVerified) {
+            throw new RuntimeException("Bank account verification failed");
+        }
+
+        BankAccount bankAccount = BankAccount.builder()
+                .accountNumber(dto.getAccountNumber())
+                .accountHolderName(dto.getAccountHolderName())
+                .ifscCode(dto.getIfscCode())
+                .verified(true)
+                .user(user)
+                .build();
+
+        bankAccountRepository.save(bankAccount);
     }
 
-    public Optional<BankAccount> getBankAccountById(Long id) {
-        return bankAccountRepository.findById(id);
-    }
-
-    public BankAccount createBankAccount(BankAccount bankAccount) {
-        // Save the bank account first with isVerified = false
-        bankAccount.setVerified(false);
-        BankAccount savedAccount = bankAccountRepository.save(bankAccount);
-
-        // Now, call the BMS to start the verification process
-        bmsClient.startBankAccountVerification(savedAccount);
-
-        return savedAccount;
+    public boolean isBankAccountVerified(String userEmail) {
+        return bankAccountRepository.findByUserEmail(userEmail)
+                .map(BankAccount::isVerified)
+                .orElse(false);
     }
 }
-

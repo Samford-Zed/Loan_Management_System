@@ -1,37 +1,30 @@
 package com.Loanmanagement.Loan.LMS.controller;
-
-import com.Loanmanagement.Loan.LMS.model.BankAccount;
+import com.Loanmanagement.Loan.LMS.dto.BankAccountDto;
 import com.Loanmanagement.Loan.LMS.service.BankAccountService;
-import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
-@RequestMapping("/api/bank-accounts")
+@RequestMapping("/api/user/bank-account")
+@RequiredArgsConstructor
 public class BankAccountController {
 
-    @Autowired
-    private BankAccountService bankAccountService;
+    private final BankAccountService bankAccountService;
 
-    @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    public List<BankAccount> getAllBankAccounts() {
-        return bankAccountService.getAllBankAccounts();
+    @PostMapping("/link")
+    public ResponseEntity<Void> linkBankAccount(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody BankAccountDto bankAccountDto
+    ) {
+        bankAccountService.linkBankAccount(userDetails.getUsername(), bankAccountDto);
+        return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<BankAccount> getBankAccountById(@PathVariable Long id) {
-        return bankAccountService.getBankAccountById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
-
-    @PostMapping
-    public BankAccount createBankAccount(@Valid @RequestBody BankAccount bankAccount) {
-        return bankAccountService.createBankAccount(bankAccount);
+    @GetMapping("/is-verified")
+    public ResponseEntity<Boolean> isBankAccountVerified(@AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(bankAccountService.isBankAccountVerified(userDetails.getUsername()));
     }
 }

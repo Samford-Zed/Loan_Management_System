@@ -11,19 +11,23 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-public class BankAccount {
+public class Token {
 
     @Id
     @GeneratedValue
-    private Integer id;
+    public Integer id;
 
-    private String accountNumber;
-    //private String bankName;
-    private String accountHolderName;
-    private String ifscCode;
-    private boolean verified;
+    @Column(unique = true)
+    public String token;
 
-    @OneToOne
+    @Enumerated(EnumType.STRING)
+    public TokenType tokenType = TokenType.BEARER;
+
+    public boolean revoked;
+    public boolean expired;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
-    private User user;
+    public User user;
 }
+

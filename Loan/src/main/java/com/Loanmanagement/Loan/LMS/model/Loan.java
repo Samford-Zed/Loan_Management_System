@@ -1,113 +1,73 @@
 package com.Loanmanagement.Loan.LMS.model;
-
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.JoinColumn;
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.util.List;
 
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
 public class Loan {
 
-    public enum LoanStatus {
-        PENDING,
-        APPROVED,
-        REJECTED,
-        PAID_OFF
-    }
-
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue
+    private Integer id;
+
+    private BigDecimal amount;
+    private BigDecimal remainingAmount;
+    private BigDecimal emiAmount;  // Added EMI amount field
+    private BigDecimal interestRate;
+    private Integer termInMonths;
+    private LocalDate startDate;
+    private LocalDate dueDate;
+    private String status; // PENDING, APPROVED, REJECTED, PAID, DEFAULTED
 
     @ManyToOne
-    @JoinColumn(name = "user_id") // foreign key column name
+    @JoinColumn(name = "user_id")
     private User user;
 
-    @ManyToOne
-    @JoinColumn(name = "bank_account_id") // foreign key column name
-    private BankAccount bankAccount;
+    @OneToMany(mappedBy = "loan")
+    private List<Payment> payments;
 
-    private BigDecimal principalAmount;
+    // Custom builder to calculate EMI
+    public static class LoanBuilder {
+        public Loan build() {
+            Loan loan = new Loan();
+            loan.id = this.id;
+            loan.amount = this.amount;
+            loan.remainingAmount = this.amount; // Initialize remaining amount
+            loan.interestRate = this.interestRate;
+            loan.termInMonths = this.termInMonths;
+            loan.startDate = this.startDate;
+            loan.dueDate = this.dueDate;
+            loan.status = this.status;
+            loan.user = this.user;
+            loan.payments = this.payments;
 
-    private int loanTermMonths;
+            // Calculate EMI if all required fields are present
+            if (loan.amount != null && loan.interestRate != null && loan.termInMonths != null && loan.termInMonths > 0) {
+                BigDecimal monthlyInterestRate = loan.interestRate
+                        .divide(BigDecimal.valueOf(100), 6, RoundingMode.HALF_UP)
+                        .divide(BigDecimal.valueOf(12), 6, RoundingMode.HALF_UP);
+                loan.emiAmount = calculateEMI(loan.amount, monthlyInterestRate, loan.termInMonths);
+            }
 
-    @Enumerated(EnumType.STRING)
-    private LoanStatus status;
+            return loan;
+        }
 
-    private BigDecimal outstandingBalance;
-
-    private LocalDateTime disbursedAt;
-
-    // Getters and setters ...
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-    public BankAccount getBankAccount() {
-        return bankAccount;
-    }
-
-    public void setBankAccount(BankAccount bankAccount) {
-        this.bankAccount = bankAccount;
-    }
-
-    public BigDecimal getPrincipalAmount() {
-        return principalAmount;
-    }
-
-    public void setPrincipalAmount(BigDecimal principalAmount) {
-        this.principalAmount = principalAmount;
-    }
-
-    public int getLoanTermMonths() {
-        return loanTermMonths;
-    }
-
-    public void setLoanTermMonths(int loanTermMonths) {
-        this.loanTermMonths = loanTermMonths;
-    }
-
-    public LoanStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(LoanStatus status) {
-        this.status = status;
-    }
-
-    public BigDecimal getOutstandingBalance() {
-        return outstandingBalance;
-    }
-
-    public void setOutstandingBalance(BigDecimal outstandingBalance) {
-        this.outstandingBalance = outstandingBalance;
-    }
-
-    public LocalDateTime getDisbursedAt() {
-        return disbursedAt;
-    }
-
-    public void setDisbursedAt(LocalDateTime disbursedAt) {
-        this.disbursedAt = disbursedAt;
+        private BigDecimal calculateEMI(BigDecimal principal, BigDecimal monthlyInterestRate, int termInMonths) {
+            BigDecimal factor = BigDecimal.ONE.add(monthlyInterestRate).pow(termInMonths);
+            return principal.multiply(monthlyInterestRate)
+                    .multiply(factor)
+                    .divide(factor.subtract(BigDecimal.ONE), 2, RoundingMode.HALF_UP);
+        }
     }
 }
